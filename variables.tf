@@ -46,4 +46,17 @@ variable "cluster_name" {
   default     = "sports-store-cluster"
 }
 
+variable "ecr_repositories" {
+  type        = list(string)
+  description = "List of ECR repository names to create"
+  default = [
+    "frontend",
+    "gateway",
+    "auth-service",
+    "catalog-service",
+    "cart-service",
+    "order-service",
+    "payment-service"
+  ]
+}
 

@@ -12,3 +12,9 @@ output "public_subnets" {
   description = "List of IDs of public subnets"
   value       = module.vpc.public_subnets
 }
+
+output "ecr_repository_uris" {
+  description = "Map of ECR repository names to their registry URIs"
+  value       = { for k, v in aws_ecr_repository.microservices : k => v.repository_url }
+}
+
