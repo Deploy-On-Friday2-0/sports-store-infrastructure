@@ -18,3 +18,19 @@ output "ecr_repository_uris" {
   value       = { for k, v in aws_ecr_repository.microservices : k => v.repository_url }
 }
 
+output "eks_cluster_role_arn" {
+  description = "ARN of the EKS Cluster control plane IAM role"
+  value       = aws_iam_role.eks_cluster.arn
+}
+
+output "eks_node_role_arn" {
+  description = "ARN of the EKS Worker node IAM role"
+  value       = aws_iam_role.eks_node.arn
+}
+
+output "eks_node_security_group_id" {
+  description = "Security Group ID for EKS worker nodes"
+  value       = aws_security_group.eks_nodes.id
+}
+
+
