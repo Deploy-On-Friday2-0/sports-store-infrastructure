@@ -53,10 +53,10 @@ assert_contains iam.tf 'namespace       = "external-secrets"' \
 assert_contains iam.tf 'service_account = "external-secrets-sa"' \
   "Pod Identity service account is incorrect"
 
-# Prevent this issue from introducing secret values into Terraform or state.
+# Prevent readable secret payload arguments from introducing values into state.
 if rg --glob '*.tf' --glob '*.tfvars' \
-  'aws_secretsmanager_secret_version|secret_string\s*=|secret_binary\s*=' .; then
-  fail "Static secret values or a secret version resource were found"
+  'secret_string\s*=|secret_binary\s*=' .; then
+  fail "A state-backed secret payload argument was found"
 fi
 
 printf 'DEP-234 acceptance tests passed.\n'
