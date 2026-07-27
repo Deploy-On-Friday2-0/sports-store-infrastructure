@@ -59,3 +59,30 @@ variable "ecr_repositories" {
   ]
 }
 
+variable "cluster_version" {
+  description = "Kubernetes version"
+  type        = string
+  default     = "1.30"
+}
+
+variable "node_instance_type" {
+  description = "Worker node instance type"
+  type        = string
+  default     = "t3.medium"
+}
+
+variable "node_min_size" {
+  type    = number
+  default = 3
+}
+
+variable "node_desired_size" {
+  type    = number
+  default = 3
+}
+
+variable "node_max_size" {
+  type    = number
+  default = 6
+}
+
