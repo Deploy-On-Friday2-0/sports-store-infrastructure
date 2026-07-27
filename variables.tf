@@ -94,6 +94,33 @@ variable "ecr_repositories" {
   ]
 }
 
+variable "cluster_version" {
+  description = "Kubernetes version"
+  type        = string
+  default     = "1.30"
+}
+
+variable "node_instance_type" {
+  description = "Worker node instance type"
+  type        = string
+  default     = "t3.medium"
+}
+
+variable "node_min_size" {
+  type    = number
+  default = 3
+}
+
+variable "node_desired_size" {
+  type    = number
+  default = 3
+}
+
+variable "node_max_size" {
+  type    = number
+  default = 6
+}
+
 variable "alb_dns_name" {
   type        = string
   description = "The DNS hostname resolving to the EKS Application Load Balancer (either the raw AWS ELB DNS name, or the custom Route 53 DNS record pointing to it)"
