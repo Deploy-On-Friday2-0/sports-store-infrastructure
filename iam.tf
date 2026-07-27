@@ -98,3 +98,204 @@ resource "aws_eks_pod_identity_association" "ebs_csi" {
   service_account = "ebs-csi-controller-sa"
   role_arn        = aws_iam_role.ebs_csi.arn
 }
+
+# ==========================================
+# GitHub Actions OIDC Authentication Setup
+# ==========================================
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8518e8759bf075b76b750d4f2df264fcd"]
+}
+
+# GitHub Actions ECR Push Role
+resource "aws_iam_role" "github_actions_ecr" {
+  name = "${var.cluster_name}-github-actions-ecr-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:deploy-on-friday/sports-store-gateway:*",
+              "repo:deploy-on-friday/sports-store-auth-service:*",
+              "repo:deploy-on-friday/sports-store-catalog-service:*",
+              "repo:deploy-on-friday/sports-store-cart-service:*",
+              "repo:deploy-on-friday/sports-store-order-service:*",
+              "repo:deploy-on-friday/sports-store-payment-service:*"
+            ]
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Terraform   = "true"
+  }
+}
+
+resource "aws_iam_policy" "github_actions_ecr" {
+  name        = "${var.cluster_name}-github-actions-ecr-push"
+  description = "Permissions for GitHub Actions to push images to ECR"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ECRAuth"
+        Effect   = "Allow"
+        Action   = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      },
+      {
+        Sid    = "ECRPush"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ]
+        Resource = [for repo in aws_ecr_repository.microservices : repo.arn]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_ecr" {
+  role       = aws_iam_role.github_actions_ecr.name
+  policy_arn = aws_iam_policy.github_actions_ecr.arn
+}
+
+# GitHub Actions Frontend Deploy Role
+resource "aws_iam_role" "github_actions_frontend" {
+  name = "${var.cluster_name}-github-actions-frontend-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:deploy-on-friday/sports-store-frontend:*"
+            ]
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Terraform   = "true"
+  }
+}
+
+resource "aws_iam_policy" "github_actions_frontend" {
+  name        = "${var.cluster_name}-github-actions-frontend-deploy"
+  description = "Permissions for GitHub Actions to deploy static assets to S3 and invalidate CloudFront cache"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "S3Upload"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          aws_s3_bucket.frontend.arn,
+          "${aws_s3_bucket.frontend.arn}/*"
+        ]
+      },
+      {
+        Sid    = "CloudFrontInvalidation"
+        Effect = "Allow"
+        Action = [
+          "cloudfront:CreateInvalidation"
+        ]
+        Resource = aws_cloudfront_distribution.frontend.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_frontend" {
+  role       = aws_iam_role.github_actions_frontend.name
+  policy_arn = aws_iam_policy.github_actions_frontend.arn
+}
+
+# ==========================================
+# Terraform Cloud OIDC Authentication Setup
+# ==========================================
+
+resource "aws_iam_openid_connect_provider" "tfc" {
+  url             = "https://app.terraform.io"
+  client_id_list  = ["aws.workspaces.owner"]
+  thumbprint_list = ["9e99a48a9960b143cc00209212040d9d20cdd3ec"]
+}
+
+resource "aws_iam_role" "tfc_admin" {
+  name = "${var.cluster_name}-tfc-admin-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.tfc.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "app.terraform.io:aud" = "aws.workspaces.owner"
+          }
+          StringLike = {
+            "app.terraform.io:sub" = "organization:deploy-on-friday:project:*:workspace:sports-store-infrastructure:run_phase:*"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Terraform   = "true"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "tfc_admin" {
+  role       = aws_iam_role.tfc_admin.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+

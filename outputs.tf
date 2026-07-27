@@ -48,5 +48,17 @@ output "cloudfront_domain_name" {
   value       = aws_cloudfront_distribution.frontend.domain_name
 }
 
+output "github_actions_ecr_role_arn" {
+  description = "The ARN of the GitHub Actions OIDC ECR push IAM role"
+  value       = aws_iam_role.github_actions_ecr.arn
+}
 
+output "github_actions_frontend_role_arn" {
+  description = "The ARN of the GitHub Actions OIDC Frontend deploy IAM role"
+  value       = aws_iam_role.github_actions_frontend.arn
+}
 
+output "tfc_actions_role_arn" {
+  description = "The ARN of the Terraform Cloud OIDC admin IAM role"
+  value       = aws_iam_role.tfc_admin.arn
+}
