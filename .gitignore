@@ -22,3 +22,5 @@ override.tf.json
 .DS_Store
 .idea/
 .vscode/
+
+plan/
