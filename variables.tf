@@ -10,6 +10,41 @@ variable "environment" {
   default     = "prod"
 }
 
+variable "mongo_initdb_root_password" {
+  type        = string
+  description = "MongoDB production root password"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.mongo_initdb_root_password) > 0
+    error_message = "The MongoDB production root password must not be empty."
+  }
+}
+
+variable "jwt_secret_key" {
+  type        = string
+  description = "Production JWT signing secret"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.jwt_secret_key) > 0
+    error_message = "The production JWT signing secret must not be empty."
+  }
+}
+
+variable "production_config_version" {
+  type        = number
+  description = "Version counter incremented whenever the production secret values rotate"
+  default     = 1
+
+  validation {
+    condition     = var.production_config_version >= 1 && floor(var.production_config_version) == var.production_config_version
+    error_message = "The production config version must be a positive integer."
+  }
+}
+
 variable "vpc_name" {
   type        = string
   description = "The name of the VPC"
