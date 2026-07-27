@@ -12,3 +12,14 @@ Terraform source for the AWS infrastructure that hosts the Sports Store platform
 - Terraform Cloud remote state and VCS-driven runs
 
 Application workloads and Kubernetes deployment manifests belong in `sports-store-deployments`.
+
+## Supported Outputs
+
+The root module exposes only values needed by deployment and release automation:
+
+| Output | Purpose |
+| --- | --- |
+| `ecr_repository_uris` | Resolve the registry destination for service image pushes. |
+| `frontend_s3_bucket_id` | Identify the bucket that receives frontend build assets. |
+| `cloudfront_distribution_id` | Identify the distribution for cache invalidation after frontend releases. |
+| `cloudfront_domain_name` | Provide the public frontend endpoint. |
