@@ -104,9 +104,8 @@ resource "aws_eks_pod_identity_association" "ebs_csi" {
 # ==========================================
 
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8518e8759bf075b76b750d4f2df264fcd"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
 }
 
 # GitHub Actions ECR Push Role
@@ -170,7 +169,8 @@ resource "aws_iam_policy" "github_actions_ecr" {
           "ecr:PutImage",
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload"
+          "ecr:CompleteLayerUpload",
+          "ecr:ListImages"
         ]
         Resource = [for repo in aws_ecr_repository.microservices : repo.arn]
       }
@@ -259,9 +259,8 @@ resource "aws_iam_role_policy_attachment" "github_actions_frontend" {
 # ==========================================
 
 resource "aws_iam_openid_connect_provider" "tfc" {
-  url             = "https://app.terraform.io"
-  client_id_list  = ["aws.workspaces.owner"]
-  thumbprint_list = ["9e99a48a9960b143cc00209212040d9d20cdd3ec"]
+  url            = "https://app.terraform.io"
+  client_id_list = ["aws.workspaces.owner"]
 }
 
 resource "aws_iam_role" "tfc_admin" {
