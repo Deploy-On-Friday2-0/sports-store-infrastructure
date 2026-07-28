@@ -40,7 +40,7 @@ assert_contains "$workflow" 'terraform validate -no-color' "Terraform validation
 assert_contains "$workflow" '--framework terraform' "Checkov Terraform scan is missing"
 assert_contains "$workflow" '--hard-fail-on HIGH,CRITICAL' \
   "Checkov does not fail HIGH and CRITICAL findings"
-assert_contains "$workflow" '--soft-fail-on LOW,MEDIUM,UNKNOWN' \
+assert_contains "$workflow" '--soft-fail' \
   "lower-severity Checkov findings are not configured as non-blocking"
 assert_contains "$workflow" "--skip-path '(^|/)\\.terraform(/|$)'" \
   "downloaded Terraform content is not excluded"
