@@ -13,6 +13,19 @@ Terraform source for the AWS infrastructure that hosts the Sports Store platform
 
 Application workloads and Kubernetes deployment manifests belong in `sports-store-deployments`.
 
+Cluster-scoped bootstrap resources owned by the platform are stored under `kubernetes/`. After Terraform has created the EKS cluster and the managed EBS CSI add-on is healthy, apply the encrypted gp3 StorageClass from a host with access to the private cluster endpoint:
+
+```bash
+aws eks update-kubeconfig --name sports-store-cluster --region us-east-1
+kubectl get csidriver ebs.csi.aws.com
+kubectl get deployment ebs-csi-controller -n kube-system
+kubectl get daemonset ebs-csi-node -n kube-system
+kubectl apply -f kubernetes/storageclasses/ebs-gp3-retain.yaml
+kubectl get storageclass ebs-gp3-retain -o yaml
+```
+
+The StorageClass is intentionally not the cluster default. It provisions encrypted gp3 EBS volumes with the AWS-managed EBS key, delays binding until a Pod is scheduled, permits expansion, and retains volumes after PVC deletion.
+
 ## Bootstrap HCP Terraform AWS Authentication
 
 The `bootstrap/oidc` stack creates the AWS OIDC provider and IAM role used by HCP Terraform dynamic provider credentials. Run it once from a workstation with AWS credentials; it uses a local backend and does not depend on HCP Terraform.
