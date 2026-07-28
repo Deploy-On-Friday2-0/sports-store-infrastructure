@@ -1,0 +1,103 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.tf"
+      - "**/.terraform.lock.hcl"
+      - ".github/workflows/terraform-ci.yml"
+      - "tests/**"
+
+permissions:
+  contents: read
+
+env:
+  CHECKOV_VERSION: "3.3.8"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  format:
+    name: Terraform Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive -diff
+
+  validate:
+    name: Terraform Validate (${{ matrix.module.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - name: infrastructure
+            directory: .
+          - name: oidc-bootstrap
+            directory: bootstrap/oidc
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Initialize without backend
+        working-directory: ${{ matrix.module.directory }}
+        run: terraform init -backend=false -lockfile=readonly
+
+      - name: Validate configuration
+        working-directory: ${{ matrix.module.directory }}
+        run: terraform validate -no-color
+
+  security:
+    name: Terraform Security (Checkov)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Checkov
+        run: python3 -m pip install --disable-pip-version-check "checkov==${CHECKOV_VERSION}"
+
+      - name: Scan Terraform security and compliance
+        run: |
+          checkov \
+            --directory . \
+            --framework terraform \
+            --skip-path '(^|/)\.terraform(/|$)' \
+            --hard-fail-on HIGH,CRITICAL \
+            --soft-fail \
+            --compact
+
+  acceptance:
+    name: Workflow Acceptance Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install acceptance test dependencies
+        run: sudo apt-get update && sudo apt-get install --yes ripgrep
+
+      - name: Run repository acceptance tests
+        run: |
+          for test_script in tests/*.sh; do
+            "$test_script"
+          done
