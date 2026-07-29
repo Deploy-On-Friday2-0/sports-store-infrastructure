@@ -36,16 +36,3 @@ After a successful apply, retrieve the validated certificate ARN with:
 
 ```bash
 terraform output acm_certificate_arn
-```
-
-## Supported Outputs
-
-The root module exposes only values needed by deployment and release automation:
-
-| Output | Purpose |
-| --- | --- |
-| `ecr_repository_uris` | Resolve the registry destination for service image pushes. |
-| `frontend_s3_bucket_id` | Identify the bucket that receives frontend build assets. |
-| `cloudfront_distribution_id` | Identify the distribution for cache invalidation after frontend releases. |
-| `cloudfront_domain_name` | Provide the public frontend endpoint. |
-| `acm_certificate_arn` | Configure Helm values and the AWS ALB Ingress certificate annotation; returns `null` when custom-domain support is disabled. |
