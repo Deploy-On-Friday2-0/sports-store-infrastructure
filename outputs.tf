@@ -17,3 +17,8 @@ output "cloudfront_domain_name" {
   description = "The domain name of the CloudFront distribution"
   value       = aws_cloudfront_distribution.frontend.domain_name
 }
+
+output "acm_certificate_arn" {
+  description = "Validated regional ACM certificate ARN for Helm and ALB Ingress when custom-domain support is enabled; otherwise null"
+  value       = var.enable_custom_domain ? aws_acm_certificate_validation.regional[0].certificate_arn : null
+}
