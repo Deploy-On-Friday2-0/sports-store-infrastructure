@@ -13,51 +13,26 @@ Terraform source for the AWS infrastructure that hosts the Sports Store platform
 
 Application workloads and Kubernetes deployment manifests belong in `sports-store-deployments`.
 
-Cluster-scoped bootstrap resources owned by the platform are stored under `kubernetes/`. After Terraform has created the EKS cluster and the managed EBS CSI add-on is healthy, apply the encrypted gp3 StorageClass from a host with access to the private cluster endpoint:
+## Frontend Domain and TLS
+
+Custom-domain support is disabled by default. In this mode, Terraform creates no
+custom ACM certificates or Route 53 validation records, and the frontend remains
+available over HTTPS at the generated `cloudfront_domain_name` using the default
+CloudFront certificate.
+
+To enable a custom domain later, configure these Terraform variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `enable_custom_domain` | Set to `true` to enable ACM, Route 53 validation, and the CloudFront alias. Defaults to `false`. |
+| `domain_name` | Root domain covered by the ACM certificate and its wildcard alternative. Required only when custom-domain support is enabled. |
+| `route53_zone_id` | Route 53 hosted zone ID containing the root domain. Required only when custom-domain support is enabled. |
+
+When enabled, Terraform requests regional and `us-east-1` ACM certificates for
+the root domain and its wildcard, creates DNS validation records in Route 53,
+waits for certificate issuance, and configures the custom CloudFront alias.
+
+After a successful apply, retrieve the validated certificate ARN with:
 
 ```bash
-aws eks update-kubeconfig --name sports-store-cluster --region us-east-1
-kubectl get csidriver ebs.csi.aws.com
-kubectl get deployment ebs-csi-controller -n kube-system
-kubectl get daemonset ebs-csi-node -n kube-system
-kubectl apply -f kubernetes/storageclasses/ebs-gp3-retain.yaml
-kubectl get storageclass ebs-gp3-retain -o yaml
-```
-
-The StorageClass is intentionally not the cluster default. It provisions encrypted gp3 EBS volumes with the AWS-managed EBS key, delays binding until a Pod is scheduled, permits expansion, and retains volumes after PVC deletion.
-
-## Bootstrap HCP Terraform AWS Authentication
-
-The `bootstrap/oidc` stack creates the AWS OIDC provider and IAM role used by HCP Terraform dynamic provider credentials. Run it once from a workstation with AWS credentials; it uses a local backend and does not depend on HCP Terraform.
-
-Confirm the active AWS identity, then initialize and apply the bootstrap stack:
-
-```bash
-aws sts get-caller-identity
-terraform -chdir=bootstrap/oidc init
-terraform -chdir=bootstrap/oidc plan
-terraform -chdir=bootstrap/oidc apply
-terraform -chdir=bootstrap/oidc output -raw tfc_aws_run_role_arn
-```
-
-To use a named AWS CLI profile, prefix the AWS and Terraform commands with `AWS_PROFILE=<profile>`.
-
-Configure these environment variables in the `sports-store-infrastructure` HCP Terraform workspace:
-
-| Variable | Value |
-| --- | --- |
-| `TFC_AWS_PROVIDER_AUTH` | `true` |
-| `TFC_AWS_RUN_ROLE_ARN` | The value of `tfc_aws_run_role_arn` |
-
-The local `bootstrap/oidc/terraform.tfstate` file contains the ownership record for the bootstrap resources. It is ignored by Git and must be retained securely.
-
-## Supported Outputs
-
-The root module exposes only values needed by deployment and release automation:
-
-| Output | Purpose |
-| --- | --- |
-| `ecr_repository_uris` | Resolve the registry destination for service image pushes. |
-| `frontend_s3_bucket_id` | Identify the bucket that receives frontend build assets. |
-| `cloudfront_distribution_id` | Identify the distribution for cache invalidation after frontend releases. |
-| `cloudfront_domain_name` | Provide the public frontend endpoint. |
+terraform output acm_certificate_arn

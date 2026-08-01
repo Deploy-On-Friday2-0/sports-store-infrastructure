@@ -10,6 +10,34 @@ variable "environment" {
   default     = "prod"
 }
 
+variable "enable_custom_domain" {
+  description = "Enable ACM, Route 53 validation, and a custom CloudFront domain."
+  type        = bool
+  default     = false
+}
+
+variable "domain_name" {
+  description = "Custom domain name used when enable_custom_domain is true."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = !var.enable_custom_domain || try(length(trimspace(var.domain_name)) > 0, false)
+    error_message = "domain_name must be non-null and non-empty when enable_custom_domain is true."
+  }
+}
+
+variable "route53_zone_id" {
+  description = "Route 53 hosted zone ID used when enable_custom_domain is true."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = !var.enable_custom_domain || try(length(trimspace(var.route53_zone_id)) > 0, false)
+    error_message = "route53_zone_id must be non-null and non-empty when enable_custom_domain is true."
+  }
+}
+
 variable "mongo_initdb_root_password" {
   type        = string
   description = "MongoDB production root password"
