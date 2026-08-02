@@ -77,7 +77,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     custom_origin_config {
       http_port                = 80
       https_port               = 443
-      origin_protocol_policy   = "https-only" # Secure connection to ALB with ACM certificate
+      origin_protocol_policy   = var.enable_custom_domain ? "https-only" : "http-only" # Dynamically switch between HTTPS and HTTP depending on ACM validation
       origin_ssl_protocols     = ["TLSv1.2"]
       origin_keepalive_timeout = 5
       origin_read_timeout      = 30
