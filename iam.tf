@@ -365,4 +365,3 @@ resource "aws_eks_pod_identity_association" "lbc" {
   service_account = "aws-load-balancer-controller"
   role_arn        = aws_iam_role.lbc.arn
 }
-

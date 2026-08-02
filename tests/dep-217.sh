@@ -21,8 +21,9 @@ workflow=".github/workflows/terraform-ci.yml"
 
 assert_contains "$workflow" 'pull_request:' "pull request trigger is missing"
 assert_contains "$workflow" 'branches: [main]' "workflow is not limited to PRs targeting main"
-assert_contains "$workflow" '"**/*.tf"' "Terraform path filter is missing"
-assert_contains "$workflow" '"**/.terraform.lock.hcl"' "lock-file path filter is missing"
+if rg --quiet '^[[:space:]]+paths:' "$workflow"; then
+  fail "Terraform CI must run on every PR so the post-CI reviewer cannot be bypassed"
+fi
 assert_contains "$workflow" 'contents: read' "read-only repository permission is missing"
 assert_contains "$workflow" 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' \
   "checkout action is not pinned to the approved commit"

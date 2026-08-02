@@ -2,6 +2,10 @@
 
 Terraform source for the AWS infrastructure that hosts the Sports Store platform.
 
+## AI Pull Request Review
+
+The provider-independent review runner and trusted post-CI GitHub Actions integration are documented in [`review_runner/README.md`](review_runner/README.md). The advisory review runs only after all deterministic Terraform CI checks succeed and requires the `OPENROUTER_API_KEY` Actions secret.
+
 ## Planned Scope
 
 - VPC and networking
@@ -36,3 +40,4 @@ After a successful apply, retrieve the validated certificate ARN with:
 
 ```bash
 terraform output acm_certificate_arn
+```
