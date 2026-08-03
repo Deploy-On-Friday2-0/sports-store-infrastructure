@@ -62,10 +62,24 @@ variable "jwt_secret_key" {
   }
 }
 
+variable "mongodb_replica_set_key" {
+  type        = string
+  description = "Shared MongoDB ReplicaSet keyfile value (DEP-320); consumed by the ReplicaSet members for mutual authentication"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.mongodb_replica_set_key) > 0
+    error_message = "The MongoDB ReplicaSet key must not be empty."
+  }
+}
+
 variable "production_config_version" {
   type        = number
   description = "Version counter incremented whenever the production secret values rotate"
-  default     = 1
+  # Bumped to 2 for DEP-320: adding MONGODB_REPLICA_SET_KEY changes the
+  # write-only secret payload, which is only re-written when this version changes.
+  default = 2
 
   validation {
     condition     = var.production_config_version >= 1 && floor(var.production_config_version) == var.production_config_version
