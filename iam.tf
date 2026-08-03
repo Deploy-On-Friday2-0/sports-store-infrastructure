@@ -369,44 +369,26 @@ resource "aws_eks_pod_identity_association" "lbc" {
 # ==========================================
 # Argo Rollouts ALB Target-Group Weighting (DEP-318)
 # ==========================================
-# The Argo Rollouts controller shifts traffic during a canary by editing the
-# ALB listener-rule forward weights and verifying the applied target-group
-# weights through the ELBv2 API. EKS Pod Identity grants that access to the
-# controller ServiceAccount (namespace/SA: argo-rollouts/argo-rollouts) with no
-# static credentials and no IAM annotation on the ServiceAccount itself.
+# The Argo Rollouts controller shifts traffic during a canary by adjusting the
+# ALB target groups behind the Ingress. EKS Pod Identity grants that access to
+# the controller ServiceAccount (namespace/SA: argo-rollouts/argo-rollouts) with
+# no static credentials and no IAM annotation on the ServiceAccount itself.
+# Actions are the three named in DEP-318 AC 1.
 resource "aws_iam_policy" "argo_rollouts" {
   name        = "${var.cluster_name}-argo-rollouts-policy"
-  description = "ELBv2 read/modify access for Argo Rollouts ALB target-group weighting"
+  description = "ELBv2 target-group access for Argo Rollouts ALB weighting"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "DescribeELBv2"
+        Sid    = "ArgoRolloutsTargetGroupWeighting"
         Effect = "Allow"
         Action = [
-          "elasticloadbalancing:DescribeTargetGroups",
-          "elasticloadbalancing:DescribeLoadBalancers",
-          "elasticloadbalancing:DescribeListeners",
-          "elasticloadbalancing:DescribeRules",
-          "elasticloadbalancing:DescribeTags",
-          "elasticloadbalancing:DescribeTargetHealth"
+          "elasticloadbalancing:ModifyTargetGroupAttributes",
+          "elasticloadbalancing:RegisterTargets",
+          "elasticloadbalancing:DeregisterTargets"
         ]
-        # ELBv2 Describe* actions do not support resource-level scoping.
-        Resource = "*"
-      },
-      {
-        Sid    = "ModifyELBv2Weights"
-        Effect = "Allow"
-        Action = [
-          "elasticloadbalancing:ModifyListener",
-          "elasticloadbalancing:ModifyRule"
-        ]
-        # Kept broad to match the upstream Argo Rollouts ALB permission set and
-        # avoid denying legitimate weight changes. Can be tightened later with a
-        # StringEquals condition on aws:ResourceTag/elbv2.k8s.aws/cluster once it
-        # is confirmed the AWS Load Balancer Controller tags every listener/rule
-        # Argo Rollouts modifies.
         Resource = "*"
       }
     ]
