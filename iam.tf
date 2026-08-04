@@ -188,8 +188,8 @@ resource "aws_iam_role" "github_actions_ecr" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            # Standardized to capitalized wildcard pattern
-            "token.actions.githubusercontent.com:sub" = "repo:Deploy-On-Friday2-0/sports-store-*:*"
+            # Match both classic and new 2026 immutable ID subject formats
+            "token.actions.githubusercontent.com:sub" = "repo:Deploy-On-Friday2-0*/sports-store-*:*"
           }
         }
       }
@@ -257,8 +257,8 @@ resource "aws_iam_role" "github_actions_frontend" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            # Wildcard pattern for the frontend repo
-            "token.actions.githubusercontent.com:sub" = "repo:Deploy-On-Friday2-0/sports-store-frontend:*"
+            # Match both classic and new 2026 immutable ID subject formats for frontend
+            "token.actions.githubusercontent.com:sub" = "repo:Deploy-On-Friday2-0*/sports-store-frontend*:*"
           }
         }
       }
