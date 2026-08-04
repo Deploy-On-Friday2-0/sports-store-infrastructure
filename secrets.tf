@@ -15,6 +15,9 @@ resource "aws_secretsmanager_secret_version" "production_config" {
     MONGO_INITDB_ROOT_PASSWORD = var.mongo_initdb_root_password
     JWT_SECRET_KEY             = var.jwt_secret_key
     MONGODB_REPLICA_SET_KEY    = var.mongodb_replica_set_key
+    REDIS_PASSWORD             = var.redis_password
+    GOOGLE_API_KEY             = var.google_api_key
+    SLACK_WEBHOOK_URL          = var.slack_webhook_url
   })
   secret_string_wo_version = var.production_config_version
 }

@@ -74,6 +74,42 @@ variable "mongodb_replica_set_key" {
   }
 }
 
+variable "redis_password" {
+  type        = string
+  description = "Production Redis authentication password"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.redis_password) > 0
+    error_message = "The Redis password must not be empty."
+  }
+}
+
+variable "google_api_key" {
+  type        = string
+  description = "Google API Key for K8sGPT AI integration"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.google_api_key) > 0
+    error_message = "The Google API key must not be empty."
+  }
+}
+
+variable "slack_webhook_url" {
+  type        = string
+  description = "Slack Webhook URL for diagnostics and alerting"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.slack_webhook_url) > 0
+    error_message = "The Slack Webhook URL must not be empty."
+  }
+}
+
 variable "production_config_version" {
   type        = number
   description = "Version counter incremented whenever the production secret values rotate"
