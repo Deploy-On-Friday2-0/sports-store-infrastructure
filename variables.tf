@@ -175,7 +175,44 @@ variable "ecr_repositories" {
 variable "cluster_version" {
   description = "Next Kubernetes minor version for the staged EKS upgrade"
   type        = string
-  default     = "1.31"
+  default     = "1.32"
+}
+
+variable "eks_endpoint_public_access" {
+  description = "Expose the EKS API publicly only when restricted operator CIDRs are supplied"
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !var.eks_endpoint_public_access || length(var.eks_endpoint_public_access_cidrs) > 0
+    error_message = "eks_endpoint_public_access_cidrs must contain at least one /32 when public EKS API access is enabled."
+  }
+}
+
+variable "eks_endpoint_public_access_cidrs" {
+  description = "Operator IPv4 /32 CIDRs allowed to reach the public EKS API endpoint"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for cidr in var.eks_endpoint_public_access_cidrs :
+      can(cidrhost(cidr, 0)) && try(tonumber(split("/", cidr)[1]), 0) == 32
+    ])
+    error_message = "Every public EKS API CIDR must be a valid IPv4 /32."
+  }
+}
+
+variable "eks_admin_principal_arn" {
+  description = "Optional IAM user or role ARN granted cluster-wide EKS administrator access"
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.eks_admin_principal_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:(user|role)/.+$", var.eks_admin_principal_arn))
+    error_message = "eks_admin_principal_arn must be null or a valid IAM user/role ARN."
+  }
 }
 
 variable "node_instance_type" {
