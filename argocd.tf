@@ -8,6 +8,6 @@ resource "terraform_data" "argocd_bootstrap" {
   ]
 
   provisioner "local-exec" {
-    command = "python3 bootstrap_argocd.py ${module.eks.cluster_name} ${var.aws_region}"
+    command = "python bootstrap_argocd.py ${module.eks.cluster_name} ${var.aws_region}"
   }
 }
