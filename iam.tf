@@ -214,6 +214,7 @@ resource "aws_iam_role" "github_actions_ecr" {
   }
 }
 
+
 resource "aws_iam_policy" "github_actions_ecr" {
   name        = "${var.cluster_name}-github-actions-ecr-push"
   description = "Permissions for GitHub Actions to push images to ECR"
