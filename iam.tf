@@ -1,4 +1,5 @@
-# EKS Cluster Control Plane IAM Role
+# EKS Control Plane & Worker Node IAM Roles
+
 resource "aws_iam_role" "eks_cluster" {
   name = "${var.cluster_name}-cluster-role"
 
@@ -26,7 +27,6 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-# EKS Worker Node IAM Role (Least Privilege)
 resource "aws_iam_role" "eks_node" {
   name = "${var.cluster_name}-node-role"
 
@@ -60,7 +60,8 @@ resource "aws_iam_role_policy_attachment" "eks_node_policy" {
   policy_arn = each.value
 }
 
-# EKS Pod Identity IAM Role (for EBS CSI controller)
+# EBS CSI Driver (EKS Pod Identity)
+
 resource "aws_iam_role" "ebs_csi" {
   name = "${var.cluster_name}-ebs-csi-role"
 
@@ -91,7 +92,6 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
-# EKS Pod Identity Association
 resource "aws_eks_pod_identity_association" "ebs_csi" {
   cluster_name    = module.eks.cluster_name
   namespace       = "kube-system"
@@ -99,7 +99,8 @@ resource "aws_eks_pod_identity_association" "ebs_csi" {
   role_arn        = aws_iam_role.ebs_csi.arn
 }
 
-# EKS Pod Identity IAM resources for External Secrets Operator
+# External Secrets Operator (EKS Pod Identity)
+
 resource "aws_iam_policy" "external_secrets" {
   name        = "${var.cluster_name}-external-secrets-policy"
   description = "Read access to sports-store secrets for External Secrets Operator"
@@ -163,16 +164,13 @@ resource "aws_eks_pod_identity_association" "external_secrets" {
   role_arn        = aws_iam_role.external_secrets.arn
 }
 
-# ==========================================
-# GitHub Actions OIDC Authentication Setup
-# ==========================================
+# GitHub Actions OIDC Setup
 
 resource "aws_iam_openid_connect_provider" "github" {
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
 }
 
-# GitHub Actions ECR Push Role
 resource "aws_iam_role" "github_actions_ecr" {
   name = "${var.cluster_name}-github-actions-ecr-role"
 
@@ -191,12 +189,12 @@ resource "aws_iam_role" "github_actions_ecr" {
           }
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-              "repo:deploy-on-friday/sports-store-gateway:*",
-              "repo:deploy-on-friday/sports-store-auth-service:*",
-              "repo:deploy-on-friday/sports-store-catalog-service:*",
-              "repo:deploy-on-friday/sports-store-cart-service:*",
-              "repo:deploy-on-friday/sports-store-order-service:*",
-              "repo:deploy-on-friday/sports-store-payment-service:*"
+              "repo:Deploy-On-Friday2-0/sports-store-gateway:*",
+              "repo:Deploy-On-Friday2-0/sports-store-auth-service:*",
+              "repo:Deploy-On-Friday2-0/sports-store-catalog-service:*",
+              "repo:Deploy-On-Friday2-0/sports-store-cart-service:*",
+              "repo:Deploy-On-Friday2-0/sports-store-order-service:*",
+              "repo:Deploy-On-Friday2-0/sports-store-payment-service:*"
             ]
           }
         }
@@ -247,7 +245,6 @@ resource "aws_iam_role_policy_attachment" "github_actions_ecr" {
   policy_arn = aws_iam_policy.github_actions_ecr.arn
 }
 
-# GitHub Actions Frontend Deploy Role
 resource "aws_iam_role" "github_actions_frontend" {
   name = "${var.cluster_name}-github-actions-frontend-role"
 
@@ -266,7 +263,7 @@ resource "aws_iam_role" "github_actions_frontend" {
           }
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-              "repo:deploy-on-friday/sports-store-frontend:*"
+              "repo:Deploy-On-Friday2-0/sports-store-frontend:*"
             ]
           }
         }
@@ -318,14 +315,14 @@ resource "aws_iam_role_policy_attachment" "github_actions_frontend" {
   policy_arn = aws_iam_policy.github_actions_frontend.arn
 }
 
-# AWS Load Balancer Controller (LBC) IAM Policy
+# AWS Load Balancer Controller (EKS Pod Identity)
+
 resource "aws_iam_policy" "lbc" {
   name        = "${var.cluster_name}-aws-load-balancer-controller"
   description = "Policy for the AWS Load Balancer Controller inside EKS"
   policy      = file("${path.module}/policies/lbc-iam-policy.json")
 }
 
-# AWS Load Balancer Controller IAM Role (EKS Pod Identity)
 resource "aws_iam_role" "lbc" {
   name = "${var.cluster_name}-lbc-role"
 
@@ -352,13 +349,11 @@ resource "aws_iam_role" "lbc" {
   }
 }
 
-# Attach LBC Policy to Role
 resource "aws_iam_role_policy_attachment" "lbc" {
   role       = aws_iam_role.lbc.name
   policy_arn = aws_iam_policy.lbc.arn
 }
 
-# EKS Pod Identity Association for LBC
 resource "aws_eks_pod_identity_association" "lbc" {
   cluster_name    = module.eks.cluster_name
   namespace       = "kube-system"
@@ -366,14 +361,8 @@ resource "aws_eks_pod_identity_association" "lbc" {
   role_arn        = aws_iam_role.lbc.arn
 }
 
-# ==========================================
-# Argo Rollouts ALB Target-Group Weighting (DEP-318)
-# ==========================================
-# The Argo Rollouts controller shifts traffic during a canary by adjusting the
-# ALB target groups behind the Ingress. EKS Pod Identity grants that access to
-# the controller ServiceAccount (namespace/SA: argo-rollouts/argo-rollouts) with
-# no static credentials and no IAM annotation on the ServiceAccount itself.
-# Actions are the three named in DEP-318 AC 1.
+# Argo Rollouts ALB Weighting (EKS Pod Identity)
+
 resource "aws_iam_policy" "argo_rollouts" {
   name        = "${var.cluster_name}-argo-rollouts-policy"
   description = "ELBv2 target-group access for Argo Rollouts ALB weighting"
