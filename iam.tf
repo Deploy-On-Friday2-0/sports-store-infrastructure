@@ -194,7 +194,13 @@ resource "aws_iam_role" "github_actions_ecr" {
               "repo:Deploy-On-Friday2-0/sports-store-catalog-service:*",
               "repo:Deploy-On-Friday2-0/sports-store-cart-service:*",
               "repo:Deploy-On-Friday2-0/sports-store-order-service:*",
-              "repo:Deploy-On-Friday2-0/sports-store-payment-service:*"
+              "repo:Deploy-On-Friday2-0/sports-store-payment-service:*",
+              "repo:deploy-on-friday2-0/sports-store-gateway:*",
+              "repo:deploy-on-friday2-0/sports-store-auth-service:*",
+              "repo:deploy-on-friday2-0/sports-store-catalog-service:*",
+              "repo:deploy-on-friday2-0/sports-store-cart-service:*",
+              "repo:deploy-on-friday2-0/sports-store-order-service:*",
+              "repo:deploy-on-friday2-0/sports-store-payment-service:*"
             ]
           }
         }
@@ -263,7 +269,8 @@ resource "aws_iam_role" "github_actions_frontend" {
           }
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-              "repo:Deploy-On-Friday2-0/sports-store-frontend:*"
+              "repo:Deploy-On-Friday2-0/sports-store-frontend:*",
+              "repo:deploy-on-friday2-0/sports-store-frontend:*"
             ]
           }
         }
