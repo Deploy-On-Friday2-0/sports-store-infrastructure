@@ -11,6 +11,10 @@ resource "aws_ecr_repository" "microservices" {
     Environment = var.environment
     Terraform   = "true"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_ecr_lifecycle_policy" "policy" {
