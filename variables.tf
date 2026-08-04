@@ -65,13 +65,63 @@ variable "jwt_secret_key" {
 variable "production_config_version" {
   type        = number
   description = "Version counter incremented whenever the production secret values rotate"
-  default     = 1
+  default     = 2
 
   validation {
     condition     = var.production_config_version >= 1 && floor(var.production_config_version) == var.production_config_version
     error_message = "The production config version must be a positive integer."
   }
 }
+
+variable "mongodb_replica_set_key" {
+  type        = string
+  description = "Shared MongoDB ReplicaSet keyfile value (DEP-320); consumed by the ReplicaSet members for mutual authentication"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.mongodb_replica_set_key) >= 6 && length(var.mongodb_replica_set_key) <= 1024 && can(regex("^[a-zA-Z0-9+/=]+$", var.mongodb_replica_set_key))
+    error_message = "The MongoDB ReplicaSet key must be a valid base64 string between 6 and 1024 characters."
+  }
+}
+
+variable "redis_password" {
+  type        = string
+  description = "Production Redis authentication password"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.redis_password) > 0
+    error_message = "The Redis password must not be empty."
+  }
+}
+
+variable "google_api_key" {
+  type        = string
+  description = "Google API Key for K8sGPT AI integration"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.google_api_key) > 0
+    error_message = "The Google API key must not be empty."
+  }
+}
+
+variable "slack_webhook_url" {
+  type        = string
+  description = "Slack Webhook URL for diagnostics and alerting"
+  sensitive   = true
+  ephemeral   = true
+
+  validation {
+    condition     = length(var.slack_webhook_url) > 0
+    error_message = "The Slack Webhook URL must not be empty."
+  }
+}
+
+
 
 variable "vpc_name" {
   type        = string

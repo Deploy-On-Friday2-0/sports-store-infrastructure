@@ -15,7 +15,7 @@ assert_contains() {
   local value="$2"
   local description="$3"
 
-  rg --fixed-strings --quiet "$value" "$file" || fail "$description"
+  grep -F -q "$value" "$file" || fail "$description"
 }
 
 assert_ephemeral_variable() {
@@ -23,7 +23,7 @@ assert_ephemeral_variable() {
   local block
 
   block="$(awk -v variable="$name" '
-    $0 == "variable \"" variable "\" {" { found = 1 }
+    $0 ~ "^variable \"" variable "\"[[:space:]]*{" { found = 1 }
     found {
       line = $0
       openings = gsub(/{/, "", line)
@@ -36,11 +36,11 @@ assert_ephemeral_variable() {
   ' variables.tf)"
 
   [[ -n "$block" ]] || fail "Variable $name is missing"
-  rg --fixed-strings --quiet 'sensitive   = true' <<<"$block" || \
+  echo "$block" | grep -F -q 'sensitive   = true' || \
     fail "Variable $name must be sensitive"
-  rg --fixed-strings --quiet 'ephemeral   = true' <<<"$block" || \
+  echo "$block" | grep -F -q 'ephemeral   = true' || \
     fail "Variable $name must be ephemeral"
-  if rg --quiet '^\s*default\s*=' <<<"$block"; then
+  if echo "$block" | grep -q '^[[:space:]]*default[[:space:]]*='; then
     fail "Variable $name must not have a default"
   fi
 }
@@ -50,6 +50,13 @@ assert_contains providers.tf 'required_version = ">= 1.11.0, < 2.0.0"' \
 
 assert_ephemeral_variable mongo_initdb_root_password
 assert_ephemeral_variable jwt_secret_key
+assert_ephemeral_variable mongodb_replica_set_key
+assert_ephemeral_variable redis_password
+assert_ephemeral_variable google_api_key
+assert_ephemeral_variable slack_webhook_url
+
+assert_contains variables.tf 'default     = 2' \
+  "Production config version must be bumped to 2"
 
 assert_contains secrets.tf 'resource "aws_secretsmanager_secret_version" "production_config"' \
   "Production config secret version is missing"
@@ -63,15 +70,26 @@ assert_contains secrets.tf 'MONGO_INITDB_ROOT_PASSWORD = var.mongo_initdb_root_p
   "MongoDB credential key is missing"
 assert_contains secrets.tf 'JWT_SECRET_KEY             = var.jwt_secret_key' \
   "JWT credential key is missing"
+assert_contains secrets.tf 'MONGODB_REPLICA_SET_KEY    = var.mongodb_replica_set_key' \
+  "MongoDB ReplicaSet key mapping is missing"
+assert_contains secrets.tf 'REDIS_PASSWORD             = var.redis_password' \
+  "Redis password mapping is missing"
+assert_contains secrets.tf 'GOOGLE_API_KEY             = var.google_api_key' \
+  "Google API key mapping is missing"
+assert_contains secrets.tf 'SLACK_WEBHOOK_URL          = var.slack_webhook_url' \
+  "Slack Webhook URL mapping is missing"
 
-secret_container_count="$(rg --count 'resource "aws_secretsmanager_secret"' secrets.tf)"
+secret_container_count="$(grep -c 'resource "aws_secretsmanager_secret"' secrets.tf)"
 [[ "$secret_container_count" == "1" ]] || fail "The DEP-234 secret container must not be duplicated"
 
-if rg --glob '*.tf' --glob '*.tfvars' 'secret_string\s*=|secret_binary\s*=' .; then
-  fail "A state-backed secret payload argument was found"
-fi
+# Check in all .tf files for state-backed secret payload arguments
+for f in *.tf; do
+  if grep -E -q 'secret_string[[:space:]]*=|secret_binary[[:space:]]*=' "$f"; then
+    fail "A state-backed secret payload argument was found in $f"
+  fi
+done
 
-if rg --quiet 'mongo_initdb_root_password|jwt_secret_key' outputs.tf; then
+if grep -E -q 'mongo_initdb_root_password|jwt_secret_key' outputs.tf; then
   fail "Secret values must not be exposed through Terraform outputs"
 fi
 
