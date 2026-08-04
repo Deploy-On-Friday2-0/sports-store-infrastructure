@@ -1,8 +1,8 @@
 locals {
   is_prod = lower(var.environment) == "prod"
 
-  single_nat_gateway     = local.is_prod ? false : true
-  one_nat_gateway_per_az = local.is_prod ? true : false
+  single_nat_gateway     = true
+  one_nat_gateway_per_az = false
 }
 
 module "vpc" {
