@@ -16,10 +16,26 @@ module "eks" {
   # API Access
   #################################################
 
-  cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = true
+  cluster_endpoint_private_access      = true
+  cluster_endpoint_public_access       = var.eks_endpoint_public_access
+  cluster_endpoint_public_access_cidrs = var.eks_endpoint_public_access_cidrs
 
   enable_cluster_creator_admin_permissions = true
+
+  access_entries = var.eks_admin_principal_arn == null ? {} : {
+    operator = {
+      principal_arn = var.eks_admin_principal_arn
+
+      policy_associations = {
+        cluster_admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
 
   #################################################
   # Core Addons

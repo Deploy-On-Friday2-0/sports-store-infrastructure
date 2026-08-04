@@ -8,6 +8,7 @@ Terraform source for the Amazon Web Services (AWS) infrastructure that hosts Spo
 - [Architecture and layout](#architecture-and-layout)
 - [Prerequisites and configuration](#prerequisites-and-configuration)
 - [Validate and deploy](#validate-and-deploy)
+- [Staged EKS upgrades](#staged-eks-upgrades)
 - [CI/CD and security](#cicd-and-security)
 - [Troubleshooting](#troubleshooting)
 
@@ -31,7 +32,9 @@ Terraform Cloud provides remote state for the root configuration. Do not create 
 
 Install Terraform, configure authorized AWS credentials, and obtain access to the configured Terraform Cloud organization/workspace. Review all inputs before applying.
 
-Common non-secret variables have defaults, including `aws_region=us-east-1`, `environment=prod`, `cluster_name=sports-store-cluster`, Kubernetes `1.30`, and a three-node `t3.medium` managed group (minimum 3, maximum 6). Sensitive required variables include MongoDB, Redis, JWT, Google API, and Slack values; supply them as sensitive Terraform Cloud variables (`TF_VAR_<name>`), never in committed `.tfvars` files.
+Common non-secret variables have defaults, including `aws_region=us-east-1`, `environment=prod`, `cluster_name=sports-store-cluster`, the next Kubernetes target `1.32`, and a three-node `t3.medium` managed group (minimum 3, maximum 6). Sensitive required variables include MongoDB, Redis, JWT, Google API, and Slack values; supply them as sensitive Terraform Cloud variables (`TF_VAR_<name>`), never in committed `.tfvars` files.
+
+The EKS API remains private by default. For temporary operator access, set `eks_endpoint_public_access=true`, provide only operator IPv4 `/32` values in `eks_endpoint_public_access_cidrs`, and set `eks_admin_principal_arn` to the approved IAM user or role. Never use `0.0.0.0/0`; remove or rotate the CIDR when the operator address changes.
 
 Custom-domain support is off by default. To enable it, set `enable_custom_domain=true`, `domain_name`, and `route53_zone_id`. Otherwise CloudFront uses its generated domain and default certificate.
 
@@ -55,6 +58,12 @@ terraform output acm_certificate_arn
 ```
 
 Initialize `bootstrap/oidc/` separately when establishing GitHub federation; do not mix its state with the root module.
+
+## Staged EKS upgrades
+
+The live EKS cluster is on Kubernetes 1.31 and this configuration declares 1.32 as the next reviewed target. EKS upgrades must proceed one minor version at a time: 1.31 -> 1.32 -> 1.33 -> 1.34. Plan, review, apply, and verify each step separately. Version 1.34 is the target because it remains in EKS standard support and avoids extended-support control-plane charges.
+
+Before every step, check EKS Upgrade Insights and review compatibility and version changes for the control plane, managed node group, and all EKS add-ons, including the Pod Identity Agent, VPC CNI, and EBS CSI driver. Inspect the complete Terraform plan for unexpected destruction or replacement before approval. Do not run `terraform apply` as part of source-only maintenance or validation work.
 
 ## CI/CD and security
 
