@@ -365,3 +365,76 @@ resource "aws_eks_pod_identity_association" "lbc" {
   service_account = "aws-load-balancer-controller"
   role_arn        = aws_iam_role.lbc.arn
 }
+
+# ==========================================
+# Argo Rollouts ALB Target-Group Weighting (DEP-318)
+# ==========================================
+# The Argo Rollouts controller shifts traffic during a canary by adjusting the
+# ALB target groups behind the Ingress. EKS Pod Identity grants that access to
+# the controller ServiceAccount (namespace/SA: argo-rollouts/argo-rollouts) with
+# no static credentials and no IAM annotation on the ServiceAccount itself.
+# Actions are the three named in DEP-318 AC 1.
+resource "aws_iam_policy" "argo_rollouts" {
+  name        = "${var.cluster_name}-argo-rollouts-policy"
+  description = "ELBv2 target-group access for Argo Rollouts ALB weighting"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ArgoRolloutsTargetGroupWeighting"
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:ModifyTargetGroupAttributes",
+          "elasticloadbalancing:RegisterTargets",
+          "elasticloadbalancing:DeregisterTargets"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = {
+    Project     = "sports-store"
+    Environment = var.environment
+    Terraform   = "true"
+  }
+}
+
+resource "aws_iam_role" "argo_rollouts" {
+  name = "${var.cluster_name}-argo-rollouts-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Project     = "sports-store"
+    Environment = var.environment
+    Terraform   = "true"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "argo_rollouts" {
+  role       = aws_iam_role.argo_rollouts.name
+  policy_arn = aws_iam_policy.argo_rollouts.arn
+}
+
+resource "aws_eks_pod_identity_association" "argo_rollouts" {
+  cluster_name    = var.cluster_name
+  namespace       = "argo-rollouts"
+  service_account = "argo-rollouts"
+  role_arn        = aws_iam_role.argo_rollouts.arn
+}
