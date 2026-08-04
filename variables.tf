@@ -173,9 +173,9 @@ variable "ecr_repositories" {
 }
 
 variable "cluster_version" {
-  description = "Kubernetes version"
+  description = "Next Kubernetes minor version for the staged EKS upgrade"
   type        = string
-  default     = "1.30"
+  default     = "1.31"
 }
 
 variable "node_instance_type" {
