@@ -26,11 +26,25 @@ module "eks" {
   #################################################
 
   cluster_addons = {
-    coredns                = {}
-    kube-proxy             = {}
-    vpc-cni                = {}
-    aws-ebs-csi-driver     = {}
-    eks-pod-identity-agent = {}
+    coredns    = {}
+    kube-proxy = {}
+
+    # Provisioned before the node group so pod networking and Pod Identity
+    # credentials are available the moment nodes join.
+    vpc-cni                = { before_compute = true }
+    eks-pod-identity-agent = { before_compute = true }
+
+    # The controller reaches ACTIVE only when its pods are healthy. Force
+    # OVERWRITE so the add-on can take ownership of any pre-existing/self-managed
+    # CSI objects (a common cause of the add-on hanging in CREATING), and pull
+    # the latest driver build. Credentials come from the Pod Identity
+    # association in iam.tf, with the node-role policy below as a fallback for
+    # the Pod-Identity-agent startup race.
+    aws-ebs-csi-driver = {
+      most_recent                 = true
+      resolve_conflicts_on_create = "OVERWRITE"
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
   }
 
   #################################################
@@ -44,6 +58,15 @@ module "eks" {
       instance_types = [var.node_instance_type]
 
       ami_type = "AL2023_x86_64_STANDARD"
+
+      # Give worker nodes the EBS CSI permissions directly so the
+      # ebs-csi-controller can fall back to node-instance credentials if the
+      # Pod Identity association isn't ready when the pod starts (DEP-320 race).
+      # Attached to the module-managed node role in place, so no node
+      # replacement — unlike swapping node_role_arn, which is force-new.
+      iam_role_additional_policies = {
+        AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+      }
 
       capacity_type = "ON_DEMAND"
 
