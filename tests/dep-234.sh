@@ -46,7 +46,7 @@ assert_contains iam.tf '"sts:AssumeRole"' "Pod Identity AssumeRole action is mis
 assert_contains iam.tf '"sts:TagSession"' "Pod Identity TagSession action is missing"
 assert_contains iam.tf 'policy_arn = aws_iam_policy.external_secrets.arn' \
   "Secrets Manager policy is not attached to the Pod Identity role"
-assert_contains iam.tf 'cluster_name    = var.cluster_name' \
+assert_contains iam.tf 'cluster_name    = module.eks.cluster_name' \
   "Pod Identity association does not target the configured EKS cluster"
 assert_contains iam.tf 'namespace       = "external-secrets"' \
   "Pod Identity namespace is incorrect"
