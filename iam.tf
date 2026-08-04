@@ -93,7 +93,7 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
 
 # EKS Pod Identity Association
 resource "aws_eks_pod_identity_association" "ebs_csi" {
-  cluster_name    = var.cluster_name
+  cluster_name    = module.eks.cluster_name
   namespace       = "kube-system"
   service_account = "ebs-csi-controller-sa"
   role_arn        = aws_iam_role.ebs_csi.arn
@@ -157,7 +157,7 @@ resource "aws_iam_role_policy_attachment" "external_secrets" {
 }
 
 resource "aws_eks_pod_identity_association" "external_secrets" {
-  cluster_name    = var.cluster_name
+  cluster_name    = module.eks.cluster_name
   namespace       = "external-secrets"
   service_account = "external-secrets-sa"
   role_arn        = aws_iam_role.external_secrets.arn
@@ -360,7 +360,7 @@ resource "aws_iam_role_policy_attachment" "lbc" {
 
 # EKS Pod Identity Association for LBC
 resource "aws_eks_pod_identity_association" "lbc" {
-  cluster_name    = var.cluster_name
+  cluster_name    = module.eks.cluster_name
   namespace       = "kube-system"
   service_account = "aws-load-balancer-controller"
   role_arn        = aws_iam_role.lbc.arn
@@ -433,7 +433,7 @@ resource "aws_iam_role_policy_attachment" "argo_rollouts" {
 }
 
 resource "aws_eks_pod_identity_association" "argo_rollouts" {
-  cluster_name    = var.cluster_name
+  cluster_name    = module.eks.cluster_name
   namespace       = "argo-rollouts"
   service_account = "argo-rollouts"
   role_arn        = aws_iam_role.argo_rollouts.arn
