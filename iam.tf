@@ -188,20 +188,8 @@ resource "aws_iam_role" "github_actions_ecr" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = [
-              "repo:Deploy-On-Friday2-0/sports-store-gateway:*",
-              "repo:Deploy-On-Friday2-0/sports-store-auth-service:*",
-              "repo:Deploy-On-Friday2-0/sports-store-catalog-service:*",
-              "repo:Deploy-On-Friday2-0/sports-store-cart-service:*",
-              "repo:Deploy-On-Friday2-0/sports-store-order-service:*",
-              "repo:Deploy-On-Friday2-0/sports-store-payment-service:*",
-              "repo:deploy-on-friday2-0/sports-store-gateway:*",
-              "repo:deploy-on-friday2-0/sports-store-auth-service:*",
-              "repo:deploy-on-friday2-0/sports-store-catalog-service:*",
-              "repo:deploy-on-friday2-0/sports-store-cart-service:*",
-              "repo:deploy-on-friday2-0/sports-store-order-service:*",
-              "repo:deploy-on-friday2-0/sports-store-payment-service:*"
-            ]
+            # Standardized to lowercase single-string wildcard pattern
+            "token.actions.githubusercontent.com:sub" = "repo:deploy-on-friday2-0/sports-store-*:*"
           }
         }
       }
@@ -213,6 +201,7 @@ resource "aws_iam_role" "github_actions_ecr" {
     Terraform   = "true"
   }
 }
+
 
 resource "aws_iam_policy" "github_actions_ecr" {
   name        = "${var.cluster_name}-github-actions-ecr-push"
@@ -268,10 +257,8 @@ resource "aws_iam_role" "github_actions_frontend" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = [
-              "repo:Deploy-On-Friday2-0/sports-store-frontend:*",
-              "repo:deploy-on-friday2-0/sports-store-frontend:*"
-            ]
+            # Single lowercase string targeting the frontend repo
+            "token.actions.githubusercontent.com:sub" = "repo:deploy-on-friday2-0/sports-store-frontend:*"
           }
         }
       }
