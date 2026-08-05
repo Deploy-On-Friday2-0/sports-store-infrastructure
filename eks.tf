@@ -47,7 +47,20 @@ module "eks" {
 
     # Provisioned before the node group so pod networking and Pod Identity
     # credentials are available the moment nodes join.
-    vpc-cni                = { before_compute = true }
+    vpc-cni = {
+      before_compute = true
+
+      # Enable IPv4 prefix delegation so each ENI can carry a /28 prefix
+      # instead of individual IPs, raising the pod-per-node ceiling from the
+      # ENI-derived default (17 on t3.medium) toward the kubelet --max-pods
+      # limit set in the node group bootstrap.
+      configuration_values = jsonencode({
+        env = {
+          ENABLE_PREFIX_DELEGATION = "true"
+          WARM_PREFIX_TARGET       = "1"
+        }
+      })
+    }
     eks-pod-identity-agent = { before_compute = true }
 
     # The controller reaches ACTIVE only when its pods are healthy. Force
@@ -74,6 +87,10 @@ module "eks" {
       instance_types = [var.node_instance_type]
 
       ami_type = "AL2023_x86_64_STANDARD"
+
+      # Match the kubelet pod ceiling to prefix delegation (EKS hard cap is
+      # 110). t3.medium goes 17 -> 47 allocatable pods with a /28 per ENI.
+      bootstrap_extra_args = "--max-pods=110"
 
       # Give worker nodes the EBS CSI permissions directly so the
       # ebs-csi-controller can fall back to node-instance credentials if the
