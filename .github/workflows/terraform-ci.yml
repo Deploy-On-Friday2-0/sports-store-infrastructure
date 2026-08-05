@@ -53,6 +53,8 @@ jobs:
             directory: .
           - name: oidc-bootstrap
             directory: bootstrap/oidc
+          - name: argocd-bootstrap
+            directory: bootstrap/argocd
 
     steps:
       - name: Check out repository
