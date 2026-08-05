@@ -238,6 +238,6 @@ variable "node_max_size" {
 
 variable "alb_dns_name" {
   type        = string
-  description = "The DNS hostname resolving to the EKS Application Load Balancer (either the raw AWS ELB DNS name, or the custom Route 53 DNS record pointing to it)"
-  default     = "alb-sports-store"
+  description = "The DNS hostname resolving to the EKS Application Load Balancer (either the raw AWS ELB DNS name, or the custom Route 53 DNS record pointing to it). Defaults to the production ALB DNS name managed by the AWS Load Balancer Controller; override via a Terraform Cloud workspace variable if the ALB is ever recreated."
+  default     = "k8s-sportsst-sportsst-87b68165b3-1995243501.us-east-1.elb.amazonaws.com"
 }
