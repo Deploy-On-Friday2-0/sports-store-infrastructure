@@ -40,7 +40,7 @@ locals {
         }
         limits = {
           cpu    = "500m"
-          memory = "512Mi"
+          memory = "1024Mi"
         }
       }
     }
@@ -72,7 +72,7 @@ locals {
         }
         limits = {
           cpu    = "500m"
-          memory = "512Mi"
+          memory = "1024Mi"
         }
       }
     }
