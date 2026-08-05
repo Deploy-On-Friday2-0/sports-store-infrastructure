@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.12"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.5"
+    }
   }
 }
 
@@ -22,15 +26,15 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  host                     = data.aws_eks_cluster.target.endpoint
-  cluster_ca_certificate   = base64decode(data.aws_eks_cluster.target.certificate_authority[0].data)
-  token                    = data.aws_eks_cluster_auth.target.token
+  host                   = data.aws_eks_cluster.target.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.target.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.target.token
 }
 
 provider "helm" {
   kubernetes {
-    host                     = data.aws_eks_cluster.target.endpoint
-    cluster_ca_certificate   = base64decode(data.aws_eks_cluster.target.certificate_authority[0].data)
-    token                    = data.aws_eks_cluster_auth.target.token
+    host                   = data.aws_eks_cluster.target.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.target.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.target.token
   }
 }

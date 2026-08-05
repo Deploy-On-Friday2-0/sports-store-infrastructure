@@ -21,51 +21,20 @@ variable "argocd_repo_url" {
   default     = "https://argoproj.github.io/argo-helm"
 }
 
-variable "argocd_admin_password_hash" {
-  type        = string
-  description = "bcrypt hash of the Argo CD admin password. Use `htpasswd` or argocd's generator"
-  sensitive   = true
-  default     = null
-}
-
 variable "argocd_ingress_enabled" {
   type        = bool
-  description = "Expose Argo CD server through an internal ALB. Requires hostname, ACM cert, and ALB controller."
+  description = "Expose the Argo CD server through an Ingress (internal ALB via the AWS Load Balancer Controller). Disabled until DEP-240 is verified."
   default     = false
 }
 
 variable "argocd_hostname" {
   type        = string
-  description = "Internal DNS hostname for Argo CD server ingress"
+  description = "Internal DNS hostname served by the Argo CD server Ingress. Required only when argocd_ingress_enabled is true."
   default     = null
 }
 
-variable "argocd_acm_certificate_arn" {
+variable "sports_store_deployments_dir" {
   type        = string
-  description = "ACM certificate ARN for the Argo CD ingress hostname"
-  default     = null
-}
-
-variable "argocd_alb_scheme" {
-  type        = string
-  description = "ALB scheme for the Argo CD server ingress"
-  default     = "internal"
-}
-
-variable "argocd_alb_subnets" {
-  type        = list(string)
-  description = "Private subnet IDs for the internal ALB"
-  default     = []
-}
-
-variable "argocd_alb_security_groups" {
-  type        = list(string)
-  description = "Security group IDs for the internal ALB"
-  default     = []
-}
-
-variable "argocd_load_balancer_controller_role_arn" {
-  type        = string
-  description = "IRSA role ARN assumed by the AWS Load Balancer Controller when ingress is enabled"
-  default     = null
+  description = "Path to the sibling sports-store-deployments checkout that owns the AppProject and root Application manifests. Defaults to the adjacent repo relative to this module."
+  default     = "../../../sports-store-deployments"
 }

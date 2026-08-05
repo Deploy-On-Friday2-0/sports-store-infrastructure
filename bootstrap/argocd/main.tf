@@ -18,6 +18,14 @@ resource "kubernetes_namespace_v1" "argocd" {
 }
 
 locals {
+  argocd_ingress = var.argocd_ingress_enabled ? {
+    enabled = true
+    hosts   = var.argocd_hostname != null ? [var.argocd_hostname] : []
+    } : {
+    enabled = false
+    hosts   = []
+  }
+
   argocd_values = yamlencode({
     crds = {
       install = true
@@ -42,9 +50,7 @@ locals {
         type = "ClusterIP"
       }
 
-      ingress = {
-        enabled = var.argocd_ingress_enabled
-      }
+      ingress = local.argocd_ingress
 
       resources = {
         requests = {
@@ -139,18 +145,45 @@ locals {
 }
 
 resource "helm_release" "argocd" {
-  name       = "argocd"
-  namespace  = kubernetes_namespace_v1.argocd.metadata[0].name
-  repository = var.argocd_repo_url
-  chart      = "argo-cd"
-  version    = var.argocd_chart_version
-
-  values = [local.argocd_values]
-
+  name             = "argocd"
+  namespace        = kubernetes_namespace_v1.argocd.metadata[0].name
+  repository       = var.argocd_repo_url
+  chart            = "argo-cd"
+  version          = var.argocd_chart_version
+  values           = [local.argocd_values]
   create_namespace = false
   cleanup_on_fail  = true
 
   depends_on = [kubernetes_namespace_v1.argocd]
+}
+
+# The GitOps AppProject and root Application live in the sister deployments
+# repo (single source of truth). They are only meaningful once the argo-cd
+# CRDs exist, so they are applied after the Helm release installs them.
+data "local_file" "sports_store_project" {
+  filename = "${var.sports_store_deployments_dir}/projects/sports-store-project.yaml"
+}
+
+data "local_file" "sports_store_root_app" {
+  filename = "${var.sports_store_deployments_dir}/apps/root-app.yaml"
+}
+
+resource "kubernetes_manifest" "sports_store_project" {
+  manifest = yamldecode(data.local_file.sports_store_project.content)
+
+  depends_on = [
+    helm_release.argocd,
+    kubernetes_namespace_v1.argocd,
+  ]
+}
+
+resource "kubernetes_manifest" "sports_store_root_app" {
+  manifest = yamldecode(data.local_file.sports_store_root_app.content)
+
+  depends_on = [
+    helm_release.argocd,
+    kubernetes_namespace_v1.argocd,
+  ]
 }
 
 output "argocd_namespace" {
