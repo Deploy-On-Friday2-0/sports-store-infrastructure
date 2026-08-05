@@ -16,6 +16,7 @@ Terraform source for the Amazon Web Services (AWS) infrastructure that hosts Spo
 
 - A three-Availability-Zone VPC with public and private subnets.
 - Amazon EKS (Elastic Kubernetes Service), a managed node group, and the EBS storage driver.
+- Cluster Autoscaler (via `bootstrap/cluster-autoscaler/`) so the node group scales automatically between its minimum and maximum size when pods go Pending (DEP-332).
 - Amazon ECR (Elastic Container Registry) repositories for deployable components.
 - GitHub Actions OpenID Connect (OIDC) roles, avoiding long-lived AWS access keys.
 - AWS Secrets Manager values consumed in Kubernetes through External Secrets.
@@ -24,7 +25,7 @@ Terraform source for the Amazon Web Services (AWS) infrastructure that hosts Spo
 
 ## Architecture and layout
 
-`vpc.tf`, `eks.tf`, `ecr.tf`, `iam.tf`, `secrets.tf`, `security.tf`, `frontend.tf`, and `acm.tf` separate resource concerns. `providers.tf` configures Terraform/AWS, `variables.tf` is the input contract, and `outputs.tf` exposes ECR URIs and frontend delivery information. `bootstrap/oidc/` is the separately initialized GitHub OIDC bootstrap module. `kubernetes/storageclasses/` contains the retained EBS storage class; `policies/` contains the load-balancer-controller policy.
+`vpc.tf`, `eks.tf`, `ecr.tf`, `iam.tf`, `secrets.tf`, `security.tf`, `frontend.tf`, and `acm.tf` separate resource concerns. `providers.tf` configures Terraform/AWS, `variables.tf` is the input contract, and `outputs.tf` exposes ECR URIs and frontend delivery information. `bootstrap/oidc/` is the separately initialized GitHub OIDC bootstrap module, `bootstrap/argocd/` installs Argo CD, and `bootstrap/cluster-autoscaler/` installs Cluster Autoscaler (DEP-332). `kubernetes/storageclasses/` contains the retained EBS storage class; `policies/` contains the load-balancer-controller policy.
 
 Terraform Cloud provides remote state for the root configuration. Do not create a second local state for the same environment.
 
@@ -67,7 +68,7 @@ Before every step, check EKS Upgrade Insights and review compatibility and versi
 
 ## CI/CD and security
 
-The `Terraform CI` workflow checks branch naming, formatting, both Terraform modules, Checkov security rules, repository acceptance tests, and reviewer tests. Terraform Cloud/VCS owns infrastructure plans and applies; application publish workflows assume the OIDC-created roles and push to ECR. Argo CD then reconciles Kubernetes state from the deployments repository.
+The `Terraform CI` workflow checks branch naming, formatting, all Terraform modules (infrastructure and each `bootstrap/*` root), Checkov security rules, repository acceptance tests, and reviewer tests. Terraform Cloud/VCS owns infrastructure plans and applies; application publish workflows assume the OIDC-created roles and push to ECR. Argo CD then reconciles Kubernetes state from the deployments repository.
 
 - Treat plans and outputs as potentially sensitive. Never commit state, `.env`, credentials, or secret `.tfvars` files.
 - Secrets Manager values are created by Terraform and projected by External Secrets; do not copy values into Kubernetes YAML.

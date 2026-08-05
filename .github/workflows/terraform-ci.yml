@@ -55,6 +55,8 @@ jobs:
             directory: bootstrap/oidc
           - name: argocd-bootstrap
             directory: bootstrap/argocd
+          - name: cluster-autoscaler-bootstrap
+            directory: bootstrap/cluster-autoscaler
 
     steps:
       - name: Check out repository
