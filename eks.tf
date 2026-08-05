@@ -88,9 +88,25 @@ module "eks" {
 
       ami_type = "AL2023_x86_64_STANDARD"
 
-      # Match the kubelet pod ceiling to prefix delegation (EKS hard cap is
-      # 110). t3.medium goes 17 -> 47 allocatable pods with a /28 per ENI.
-      bootstrap_extra_args = "--max-pods=110"
+      # AL2023 bootstraps with nodeadm (NodeConfig), not /etc/eks/bootstrap.sh.
+      # This NodeConfig part is merged by nodeadm with the default bootstrap
+      # config EKS injects for managed node groups, raising the kubelet pod
+      # ceiling to match prefix delegation (EKS hard cap is 110; t3.medium goes
+      # 17 -> 47 allocatable pods with a /28 per ENI).
+      cloudinit_pre_nodeadm = [
+        {
+          content_type = "application/node.eks.aws"
+          content = <<-EOT
+            ---
+            apiVersion: node.eks.aws/v1alpha1
+            kind: NodeConfig
+            spec:
+              kubelet:
+                config:
+                  maxPods: 110
+          EOT
+        }
+      ]
 
       # Give worker nodes the EBS CSI permissions directly so the
       # ebs-csi-controller can fall back to node-instance credentials if the
