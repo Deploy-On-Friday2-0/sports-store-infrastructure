@@ -239,5 +239,5 @@ variable "node_max_size" {
 variable "alb_dns_name" {
   type        = string
   description = "The DNS hostname resolving to the EKS Application Load Balancer (either the raw AWS ELB DNS name, or the custom Route 53 DNS record pointing to it)"
-  default     = "alb.sports-store.com"
+  default     = "alb-sports-store"
 }
