@@ -121,6 +121,17 @@ variable "slack_webhook_url" {
   }
 }
 
+variable "production_observability_version" {
+  type        = number
+  description = "Version counter incremented whenever the production observability secret values rotate"
+  default     = 1
+
+  validation {
+    condition     = var.production_observability_version >= 1 && floor(var.production_observability_version) == var.production_observability_version
+    error_message = "The production observability version must be a positive integer."
+  }
+}
+
 
 
 variable "vpc_name" {
