@@ -96,7 +96,7 @@ module "eks" {
       cloudinit_pre_nodeadm = [
         {
           content_type = "application/node.eks.aws"
-          content = <<-EOT
+          content      = <<-EOT
             ---
             apiVersion: node.eks.aws/v1alpha1
             kind: NodeConfig
