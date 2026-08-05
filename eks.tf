@@ -61,6 +61,11 @@ module "eks" {
       resolve_conflicts_on_create = "OVERWRITE"
       resolve_conflicts_on_update = "OVERWRITE"
     }
+
+    # Serves pod/node CPU & memory to the metrics API so the sports-store
+    # Helm chart's per-service HorizontalPodAutoscalers have something to
+    # read; without it they sit stuck reporting an "unknown" current metric.
+    metrics-server = {}
   }
 
   #################################################
