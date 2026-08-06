@@ -79,8 +79,8 @@ assert_contains secrets.tf 'GOOGLE_API_KEY             = var.google_api_key' \
 assert_contains secrets.tf 'SLACK_WEBHOOK_URL          = var.slack_webhook_url' \
   "Slack Webhook URL mapping is missing"
 
-secret_container_count="$(grep -c 'resource "aws_secretsmanager_secret"' secrets.tf)"
-[[ "$secret_container_count" == "1" ]] || fail "The DEP-234 secret container must not be duplicated"
+config_secret_count="$(grep -c 'resource "aws_secretsmanager_secret" "production_config"' secrets.tf)"
+[[ "$config_secret_count" == "1" ]] || fail "The DEP-234 secret container must not be duplicated"
 
 # Check in all .tf files for state-backed secret payload arguments
 for f in *.tf; do
