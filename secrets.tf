@@ -24,8 +24,11 @@ resource "aws_secretsmanager_secret_version" "production_config" {
 
 # Grafana admin login has no external owner, so Terraform generates and owns
 # it outright instead of taking it as an input variable. Ephemeral (not a
-# state-backed resource) so the password never lands in Terraform state — it
-# is regenerated on every plan/apply, rotating the Grafana login each run.
+# state-backed resource) so the password never lands in Terraform state.
+# secret_string_wo is write-only — not diffed in plans — so the value is used
+# when the secret version is created and only rotated when
+# production_observability_version is incremented; unrelated applies do not
+# change the password.
 ephemeral "random_password" "grafana_admin" {
   length           = 24
   special          = true
