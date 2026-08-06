@@ -27,7 +27,7 @@ assert_contains() {
 assert_contains providers.tf 'source  = "hashicorp/random"' \
   "The random provider is required to generate the Grafana admin password"
 
-assert_contains secrets.tf 'resource "random_password" "grafana_admin"' \
+assert_contains secrets.tf 'ephemeral "random_password" "grafana_admin"' \
   "Grafana admin password generator is missing"
 
 assert_contains secrets.tf 'resource "aws_secretsmanager_secret" "production_observability"' \
@@ -46,8 +46,8 @@ assert_contains secrets.tf 'secret_id = aws_secretsmanager_secret.production_obs
   "Observability secret version must reuse the observability secret container"
 assert_contains secrets.tf 'GRAFANA_ADMIN_USER     = "admin"' \
   "Grafana admin user mapping is missing"
-assert_contains secrets.tf 'GRAFANA_ADMIN_PASSWORD = random_password.grafana_admin.result' \
-  "Grafana admin password must come from the Terraform-generated random_password"
+assert_contains secrets.tf 'GRAFANA_ADMIN_PASSWORD = ephemeral.random_password.grafana_admin.result' \
+  "Grafana admin password must come from the ephemeral Terraform-generated random_password"
 assert_contains secrets.tf 'SLACK_WEBHOOK_URL = var.slack_webhook_url' \
   "Alertmanager Slack webhook mapping is missing"
 assert_contains secrets.tf 'secret_string_wo_version = var.production_observability_version' \

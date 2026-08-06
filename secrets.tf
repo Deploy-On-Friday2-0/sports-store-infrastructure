@@ -23,8 +23,10 @@ resource "aws_secretsmanager_secret_version" "production_config" {
 }
 
 # Grafana admin login has no external owner, so Terraform generates and owns
-# it outright instead of taking it as an input variable.
-resource "random_password" "grafana_admin" {
+# it outright instead of taking it as an input variable. Ephemeral (not a
+# state-backed resource) so the password never lands in Terraform state — it
+# is regenerated on every plan/apply, rotating the Grafana login each run.
+ephemeral "random_password" "grafana_admin" {
   length           = 24
   special          = true
   override_special = "!#$%&*()-_=+[]{}<>?"
@@ -45,7 +47,7 @@ resource "aws_secretsmanager_secret_version" "production_observability" {
   secret_id = aws_secretsmanager_secret.production_observability.id
   secret_string_wo = jsonencode({
     GRAFANA_ADMIN_USER     = "admin"
-    GRAFANA_ADMIN_PASSWORD = random_password.grafana_admin.result
+    GRAFANA_ADMIN_PASSWORD = ephemeral.random_password.grafana_admin.result
     # Same Slack workspace/webhook already used for the config secret
     # (K8sGPT sink) - reused here rather than sourcing a second credential.
     SLACK_WEBHOOK_URL = var.slack_webhook_url
