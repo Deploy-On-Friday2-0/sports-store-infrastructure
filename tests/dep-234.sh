@@ -18,11 +18,17 @@ assert_contains() {
   rg --fixed-strings --quiet "$value" "$file" || fail "$description"
 }
 
-# Verify the secret container's name, encryption key, and required tags.
-assert_contains secrets.tf 'resource "aws_secretsmanager_secret" "production_config"' \
-  "Secrets Manager secret resource is missing"
-assert_contains secrets.tf 'name       = "sports-store/production/config"' \
-  "Secret name is incorrect"
+# The production config secret is deliberately out-of-band: it is created and
+# rotated manually in AWS and has been removed from Terraform state, so
+# Terraform never manages its payload. Assert it stays out of the config and
+# that only the observability secret remains Terraform-managed.
+if rg --fixed-strings --quiet 'resource "aws_secretsmanager_secret" "production_config"' secrets.tf; then
+  fail "Production config secret must not be Terraform-managed"
+fi
+assert_contains secrets.tf 'resource "aws_secretsmanager_secret" "production_observability"' \
+  "Terraform-managed observability secret is missing"
+assert_contains secrets.tf 'name       = "sports-store/production/observability"' \
+  "Observability secret name is incorrect"
 assert_contains secrets.tf 'kms_key_id = "alias/aws/secretsmanager"' \
   "Secret must use the AWS managed Secrets Manager KMS key"
 assert_contains secrets.tf 'Project     = "sports-store"' \

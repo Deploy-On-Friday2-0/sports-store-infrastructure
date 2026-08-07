@@ -233,7 +233,7 @@ resource "aws_iam_policy" "github_actions_ecr" {
           "ecr:CompleteLayerUpload",
           "ecr:ListImages"
         ]
-        Resource = [for repo in aws_ecr_repository.microservices : repo.arn]
+        Resource = ["arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/*"]
       }
     ]
   })

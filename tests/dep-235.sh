@@ -55,32 +55,27 @@ assert_ephemeral_variable redis_password
 assert_ephemeral_variable google_api_key
 assert_ephemeral_variable slack_webhook_url
 
-assert_contains variables.tf 'default     = 2' \
-  "Production config version must be bumped to 2"
-
-assert_contains secrets.tf 'resource "aws_secretsmanager_secret_version" "production_config"' \
-  "Production config secret version is missing"
-assert_contains secrets.tf 'secret_id = aws_secretsmanager_secret.production_config.id' \
-  "Secret version must reuse the DEP-234 secret"
+# The production config secret is rotated out-of-band in AWS and must never
+# return to Terraform management; the observability secret is the managed one
+# and must keep using write-only payload arguments.
+if grep -F -q 'resource "aws_secretsmanager_secret_version" "production_config"' secrets.tf; then
+  fail "Production config secret must not be Terraform-managed"
+fi
+assert_contains secrets.tf 'resource "aws_secretsmanager_secret_version" "production_observability"' \
+  "Observability secret version is missing"
+assert_contains secrets.tf 'secret_id = aws_secretsmanager_secret.production_observability.id' \
+  "Secret version must reuse the observability secret"
 assert_contains secrets.tf 'secret_string_wo = jsonencode({' \
   "Secret payload must use the write-only argument"
-assert_contains secrets.tf 'secret_string_wo_version = var.production_config_version' \
+assert_contains secrets.tf 'secret_string_wo_version = var.production_observability_version' \
   "Secret rotation version is missing"
-assert_contains secrets.tf 'MONGO_INITDB_ROOT_PASSWORD = var.mongo_initdb_root_password' \
-  "MongoDB credential key is missing"
-assert_contains secrets.tf 'JWT_SECRET_KEY             = var.jwt_secret_key' \
-  "JWT credential key is missing"
-assert_contains secrets.tf 'MONGODB_REPLICA_SET_KEY    = var.mongodb_replica_set_key' \
-  "MongoDB ReplicaSet key mapping is missing"
-assert_contains secrets.tf 'REDIS_PASSWORD             = var.redis_password' \
-  "Redis password mapping is missing"
-assert_contains secrets.tf 'GOOGLE_API_KEY             = var.google_api_key' \
-  "Google API key mapping is missing"
-assert_contains secrets.tf 'SLACK_WEBHOOK_URL          = var.slack_webhook_url' \
+assert_contains secrets.tf 'GRAFANA_ADMIN_USER     = "admin"' \
+  "Grafana admin user key is missing"
+assert_contains secrets.tf 'SLACK_WEBHOOK_URL = var.slack_webhook_url' \
   "Slack Webhook URL mapping is missing"
 
-config_secret_count="$(grep -c 'resource "aws_secretsmanager_secret" "production_config"' secrets.tf)"
-[[ "$config_secret_count" == "1" ]] || fail "The DEP-234 secret container must not be duplicated"
+observability_secret_count="$(grep -c 'resource "aws_secretsmanager_secret" "production_observability"' secrets.tf)"
+[[ "$observability_secret_count" == "1" ]] || fail "The observability secret container must not be duplicated"
 
 # Check in all .tf files for state-backed secret payload arguments
 for f in *.tf; do

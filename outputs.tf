@@ -1,8 +1,3 @@
-output "ecr_repository_uris" {
-  description = "Map of ECR repository names to their registry URIs"
-  value       = { for k, v in aws_ecr_repository.microservices : k => v.repository_url }
-}
-
 output "frontend_s3_bucket_id" {
   description = "The Name of the S3 bucket hosting static frontend assets"
   value       = aws_s3_bucket.frontend.id
