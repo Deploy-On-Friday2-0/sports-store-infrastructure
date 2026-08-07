@@ -62,17 +62,6 @@ variable "jwt_secret_key" {
   }
 }
 
-variable "production_config_version" {
-  type        = number
-  description = "Version counter incremented whenever the production secret values rotate"
-  default     = 2
-
-  validation {
-    condition     = var.production_config_version >= 1 && floor(var.production_config_version) == var.production_config_version
-    error_message = "The production config version must be a positive integer."
-  }
-}
-
 variable "mongodb_replica_set_key" {
   type        = string
   description = "Shared MongoDB ReplicaSet keyfile value (DEP-320); consumed by the ReplicaSet members for mutual authentication"
@@ -168,19 +157,6 @@ variable "cluster_name" {
   type        = string
   description = "Name of the EKS cluster for resource tagging"
   default     = "sports-store-cluster"
-}
-
-variable "ecr_repositories" {
-  type        = list(string)
-  description = "List of ECR repository names to create"
-  default = [
-    "gateway",
-    "auth-service",
-    "catalog-service",
-    "cart-service",
-    "order-service",
-    "payment-service"
-  ]
 }
 
 variable "cluster_version" {
