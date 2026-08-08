@@ -186,11 +186,6 @@ resource "kubernetes_manifest" "sports_store_root_app" {
   ]
 }
 
-# The retained EBS StorageClass is a cluster bootstrap prerequisite: workloads
-# (MongoDB, Redis) claim ebs-gp3-retain PVCs as soon as Argo CD reconciles the
-# production applications, and nothing creates the class if it only exists as a
-# checked-in YAML file. Owning it here keeps a rebuilt cluster fully
-# Terraform-driven instead of requiring a manual kubectl apply.
 data "local_file" "ebs_gp3_retain_storageclass" {
   filename = "${path.module}/../../kubernetes/storageclasses/ebs-gp3-retain.yaml"
 }
