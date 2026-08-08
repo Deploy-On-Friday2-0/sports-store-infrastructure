@@ -186,6 +186,16 @@ resource "kubernetes_manifest" "sports_store_root_app" {
   ]
 }
 
+data "local_file" "ebs_gp3_retain_storageclass" {
+  filename = "${path.module}/../../kubernetes/storageclasses/ebs-gp3-retain.yaml"
+}
+
+resource "kubernetes_manifest" "ebs_gp3_retain_storageclass" {
+  manifest = yamldecode(data.local_file.ebs_gp3_retain_storageclass.content)
+
+  depends_on = [kubernetes_namespace_v1.argocd]
+}
+
 output "argocd_namespace" {
   value = kubernetes_namespace_v1.argocd.metadata[0].name
 }

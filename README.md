@@ -41,16 +41,64 @@ Custom-domain support is off by default. To enable it, set `enable_custom_domain
 
 ## Validate and deploy
 
-```bash
-terraform fmt -check -recursive
-terraform init
-terraform validate
-terraform test
-terraform plan
-terraform apply
-```
+The root configuration is applied first and then each `bootstrap/*` root in
+order. A full cluster bring-up (new cluster or rebuild after `destroy`)
+follows these steps:
 
-`plan` previews changes; review it carefully. `apply` changes AWS resources and can incur cost. Useful outputs include:
+1. **Root infrastructure** (from this directory):
+   ```bash
+   terraform fmt -check -recursive
+   terraform init
+   terraform validate
+   terraform test
+   terraform plan
+   terraform apply
+   ```
+   This creates the VPC, EKS cluster and managed node group, EBS CSI driver,
+   OIDC roles, frontend delivery, and the managed Secrets Manager values.
+   `plan` previews changes; review it carefully. `apply` changes AWS resources
+   and can incur cost.
+
+2. **Cluster Autoscaler** (separate Terraform root with its own state):
+   ```bash
+   cd bootstrap/cluster-autoscaler
+   terraform init
+   terraform apply -var cluster_name=sports-store-cluster
+   ```
+   Autoscaling is not reinstalled by the root `apply`, so this step is
+   required after every rebuild. If skipped, the node group stays fixed at its
+   minimum size and Pending pods are not scaled for.
+
+3. **Argo CD + GitOps bootstrap** (separate Terraform root):
+   ```bash
+   cd bootstrap/argocd
+   terraform apply -var cluster_name=sports-store-cluster
+   ```
+   This installs the pinned Argo CD Helm release, applies the
+   `ebs-gp3-retain` StorageClass, and registers the AppProject and root
+   Application from `sports-store-deployments`. See
+   [bootstrap/argocd/README.md](bootstrap/argocd/README.md).
+
+4. **Deployment-side bootstrap** (from a checkout of `sports-store-deployments`):
+   ```bash
+   pwsh scripts/bootstrap-gitops.ps1
+   ```
+   The script applies the platform namespaces and the remaining Argo CD
+   Applications (controllers, monitoring, Kubecost). Argo CD then reconciles
+   the `sports-store` workloads itself. See
+   [gitops-bootstrap.md](https://github.com/Deploy-On-Friday2-0/sports-store-deployments/blob/main/docs/gitops-bootstrap.md).
+
+5. **Verify**:
+   ```bash
+   kubectl -n argocd get applications        # sports-store-root, sports-store-production Healthy
+   kubectl -n sports-store get pods          # mongodb x3, redis x3, all services Running
+   ```
+
+6. **Close temporary access**: if `eks_endpoint_public_access` was enabled to
+   allow the bootstrap, remove the operator CIDR (set
+   `eks_endpoint_public_access=false`) and re-apply the root configuration.
+
+Useful root outputs include:
 
 ```bash
 terraform output ecr_repository_uris
@@ -58,7 +106,13 @@ terraform output cloudfront_domain_name
 terraform output acm_certificate_arn
 ```
 
-Initialize `bootstrap/oidc/` separately when establishing GitHub federation; do not mix its state with the root module.
+Initialize `bootstrap/oidc/` separately when establishing GitHub federation;
+do not mix its state with the root module.
+
+> Canary rollouts (catalog, order) run Prometheus analysis that fails on empty
+> metrics. Run the k6 load test
+> (`load-testing/k6/high-concurrency.js` in `sports-store-deployments`) during
+> any rollout or demo so the analysis gates have traffic to evaluate.
 
 ## Staged EKS upgrades
 
