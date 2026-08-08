@@ -2,15 +2,18 @@
 
 A standalone Terraform configuration that installs Argo CD into an existing
 EKS cluster and completes the GitOps bootstrap. It is intentionally separate
-from the root infrastructure module so the bootstrap can be applied before the
-main infrastructure plan and torn down independently during recovery drills.
+from the root infrastructure module so it can run after the root `apply` has
+created the cluster and be torn down independently during recovery drills.
 
 ## What this does
 
 1. Creates the `argocd` namespace.
 2. Installs a pinned, resource-limited `argo-cd` Helm release (chart `10.2.2`)
    configured to match `sports-store-deployments/bootstrap/argocd.yaml`.
-3. Applies the `sports-store-project` AppProject and the
+3. Applies the retained `ebs-gp3-retain` StorageClass from
+   `../../kubernetes/storageclasses/ebs-gp3-retain.yaml`, so rebuilt clusters
+   never require a manual `kubectl apply` before workloads claim volumes.
+4. Applies the `sports-store-project` AppProject and the
    `sports-store-root` root Application from the sibling
    `sports-store-deployments` repo, so Argo CD immediately reconciles the rest
    of the platform.
@@ -49,6 +52,7 @@ terraform apply -var cluster_name=sports-store-cluster
 argo login --grpc-web localhost:8080
 kubectl -n argocd get pods,deployments
 kubectl -n argocd get applications
+kubectl get storageclass ebs-gp3-retain
 ```
 
 Forward the server locally for verification:
